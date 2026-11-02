@@ -1,0 +1,95 @@
+<!doctype html><meta charset="utf-8"><title>Portfolio Analyzer</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:#f0f0f0;color:#000;font:11px Tahoma,"Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}
+form{display:contents}
+.menu{display:flex;background:#fff;border-bottom:1px solid #d9d9d9}
+.m{position:relative;padding:3px 9px}.m:hover{background:#d8e6f2}
+.dd{display:none;position:absolute;left:0;top:100%;background:#f2f2f2;border:1px solid #868686;min-width:150px;z-index:9;box-shadow:2px 2px 0 #0003}
+.m:hover .dd{display:block}.dd button,.dd a{display:block;width:100%;text-align:left;border:0;background:none;padding:3px 22px;font:inherit;color:#000;text-decoration:none;min-height:0}
+.dd button:hover,.dd a:hover{background:#3399ff;color:#fff}
+.main{display:flex;flex:1;min-height:0;margin:4px;gap:4px}
+.tree{width:190px;background:#fff;border:1px solid #828790;overflow:auto;padding:2px 0}
+.tree a{display:block;padding:1px 8px;color:#000;text-decoration:none;white-space:nowrap}.tree a:hover{background:#d8e6f2}
+.tree i{color:#888;padding:1px 8px;display:block;font-style:normal}
+.list{flex:1;background:#fff;border:1px solid #828790;overflow:auto}
+.list table{border-collapse:collapse;width:100%}
+.list th{background:#f0f0f0;border:1px solid #d5d5d5;border-top:0;padding:2px 6px;text-align:left;font-weight:normal;white-space:nowrap}
+.list td{padding:1px 6px;white-space:nowrap}.list tr:hover td{background:#e8f2fc}
+.list h4{margin:10px 6px 3px;font-size:11px;color:#00007f}.v{margin:6px;font-weight:bold}
+.list ul{margin:2px 6px 8px;padding-left:18px}.hint{color:#888;margin:8px 6px}
+.panel{display:flex;gap:6px;margin:0 4px 4px}
+fieldset{border:1px solid #a0a0a0;box-shadow:1px 1px 0 #fff;margin:0;padding:3px 7px 6px;border-radius:0}
+legend{color:#00007f;padding:0 3px}
+.hold{height:112px;overflow:auto;background:#fff;border:1px solid #828790;margin-bottom:3px}
+.hold table{border-collapse:collapse}.hold td,.hold th{padding:0 2px;font-weight:normal;text-align:left}
+input{font:inherit;border:1px solid #7a7a7a;background:#fff;padding:1px 3px;height:19px}
+input[name=p]{width:6em;text-align:right}input[type=checkbox]{height:auto}
+button{font:inherit;background:#e1e1e1;border:1px solid #707070;padding:2px 10px;min-height:21px;color:#000}
+button:hover{background:#e5f1fb;border-color:#0078d7}button:disabled{background:#f4f4f4;border-color:#adb2b5;color:#838383}
+.rm{padding:0 6px;min-height:17px}.side{display:flex;flex-direction:column;gap:6px;justify-content:flex-end}.side button{width:96px}.side .big{height:52px}
+.row{margin:3px 0;display:flex;align-items:center;gap:5px}.row span{width:30px}
+.status{display:flex;border-top:1px solid #a0a0a0;background:#f0f0f0}.status div{padding:2px 8px;border-right:1px solid #a0a0a0;white-space:nowrap}.status .e{color:#c00}.status div:first-child{flex:1}
+</style>
+<form method="post">
+<div class="menu">
+ <div class="m">File<div class="dd"><button name="act" value="save">Save portfolio</button><button name="act" value="csv">Export CSV</button></div></div>
+ <div class="m">Actions<div class="dd"><button name="act" value="run">Analyze</button></div></div>
+ <div class="m">Help<div class="dd"><a href="#assump">Assumptions</a></div></div>
+</div>
+<div class="main">
+ <div class="tree">{% for s in saved %}<a href="/?load={{s}}">{{s}}</a>{% else %}<i>(no saved portfolios)</i>{% endfor %}</div>
+ <div class="list">
+{% if res %}{% set m=res.m %}{% set b=res.b %}
+<div class="v">Verdict: {{res.verdict}}</div>
+<table><tr><th>Metric<th>Portfolio<th>Benchmark ({{res.bname}})</tr>
+<tr><td>Jensen's alpha (annual)<td>{{'%.2f%%'%(m.alpha*100)}} [{{'%.2f'%(m.alpha_lo*100)}}, {{'%.2f'%(m.alpha_hi*100)}}], t={{'%.2f'%m.t}}<td></tr>
+<tr><td>Active return (annual, not alpha)<td>{{'%.2f%%'%(m.active*100)}}<td></tr>
+<tr><td>Beta<td>{{'%.3f'%m.beta}}<td>1</tr><tr><td>Correlation<td>{{'%.3f'%m.corr}}<td>1</tr>
+<tr><td>Annualized return<td>{{'%.2f%%'%(m.cagr*100)}}<td>{{'%.2f%%'%(b.cagr*100)}}</tr>
+<tr><td>Annualized volatility<td>{{'%.2f%%'%(m.vol*100)}}<td>{{'%.2f%%'%(b.vol*100)}}</tr>
+<tr><td>Max drawdown<td>{{'%.2f%%'%(m.mdd*100)}} ({{m.mdd_peak.date()}} to {{m.mdd_trough.date()}})<td>{{'%.2f%%'%(b.mdd*100)}}</tr>
+<tr><td>Downside deviation<td>{{'%.2f%%'%(m.down_dev*100)}}<td>{{'%.2f%%'%(b.down_dev*100)}}</tr>
+<tr><td>Upside / downside capture<td>{{'%.1f'%m.up_cap}} / {{'%.1f'%m.down_cap}}<td>100 / 100</tr>
+<tr><td>Sharpe ratio<td>{{'%.2f'%m.sharpe}}<td>{{'%.2f'%b.sharpe}}</tr></table>
+<h4>Efficiency tests (supporting tests are descriptive, not statistically tested)</h4>
+<table><tr><th>Test<th>Numbers<th>Result</tr>{% for a,n,r in res.tests %}<tr><td>{{a}}<td>{{n}}<td>{{r}}</tr>{% endfor %}</table>
+<h4>Holdings</h4><table><tr><th>Ticker<th>Weight<th>Beta<th>Alpha<th>Vol<th>Risk share</tr>
+{% for h in res.hold %}<tr><td>{{h.ticker}}<td>{{'%.1f%%'%(h.weight*100)}}<td>{{'%.2f'%h.beta}}<td>{{'%.2f%%'%(h.alpha*100)}}<td>{{'%.2f%%'%(h.vol*100)}}<td>{{'%.1f%%'%(h.risk_share*100)}}</tr>{% endfor %}</table>
+<h4 id="assump">Assumptions</h4><ul>
+<li>Window: {{res.info.window_start.date()}} to {{res.info.window_end.date()}}, {{res.n}} daily returns. Start limited by {{'the benchmark' if res.info.limited_by=='__bench__' else res.info.limited_by}}. Days dropped for missing data: {{res.info.dropped_days}}. Nothing was filled.</li>
+<li>Adjusted closes (dividends and splits). Benchmark: {{res.bname}}. Price pull dates: {{res.pulled.values()|list|unique|join(', ')}}.</li>
+<li>Fixed target weights reset on the first trading day of each month; weights drift within the month. Risk share uses target weights.</li>
+<li>Alpha: OLS of daily excess returns on benchmark excess returns, Newey-West (5 lags) errors, times 252. Risk-free: FRED DTB3, carried forward on days with no value.</li>
+<li>Return is geometric; volatility is daily std times sqrt(252); downside deviation is vs 0. Capture uses average daily returns on benchmark up or down days.</li>
+<li>Limits: survivorship bias (tickers are ones that exist today), single-factor alpha credits style tilts, free data is unofficial, past results do not predict future results.</li></ul>{% else %}<div class="hint">Enter holdings below and press Analyze.</div>{% endif %}
+ </div>
+</div>
+<div class="panel">
+ <fieldset><legend>Holdings (1)</legend>
+  <div class="hold"><table id="t"><tr><th>Ticker<th>Allocation (%)<th></tr>
+  {% for t,p in rows %}<tr><td><input name="t" value="{{t}}" size="8"><td><input name="p" value="{{p}}"><td><button type="button" class="rm">x</button></tr>{% endfor %}</table></div>
+  <button type="button" id="add">Add row</button> Total: <span id="tot">0</span>%</fieldset>
+ <fieldset><legend>Period (2)</legend>
+  <div class="row"><span>From</span><input name="start" value="{{start}}" size="10"></div>
+  <div class="row"><span>To</span><input name="end" value="{{end}}" size="10"></div></fieldset>
+ <fieldset><legend>Data (3)</legend><label><input type="checkbox" name="cache" {{'checked' if cache}}> Use cached data</label></fieldset>
+ <fieldset><legend>Save (4)</legend><div class="row"><span>Name</span><input name="name" size="12"></div><button name="act" value="save">Save</button></fieldset>
+ <div style="flex:1"></div>
+ <div class="side"><button type="button" onclick="location='/'">Reset</button><button name="act" value="csv">Export CSV</button><button class="big" name="act" value="run" id="go">Analyze</button></div>
+</div>
+<div class="status">
+ {% if err %}<div class="e">Error: {{err}}</div>{% elif res %}<div>Verdict: {{res.verdict}}</div><div>{{res.n}} daily returns</div><div>{{res.bname}}</div>{% else %}<div>Ready</div>{% endif %}
+</div>
+</form>
+<script>
+const t=document.getElementById('t'),go=document.getElementById('go'),tot=document.getElementById('tot');
+function chk(){let s=0,bad=false;for(const p of t.querySelectorAll('[name=p]')){const v=p.value.trim();if(v==='')continue;const x=Number(v);if(isNaN(x)||x<0)bad=true;else s+=x}
+tot.textContent=s.toFixed(2);const off=Math.abs(s-100)>0.01;tot.style.color=off?'#c00':'#000';go.disabled=bad||off}
+function add(){const r=t.insertRow();r.innerHTML='<td><input name="t" size="8"><td><input name="p"><td><button type="button" class="rm">x</button>';r.querySelector('input').focus()}
+document.getElementById('add').onclick=add;
+t.addEventListener('click',e=>{if(e.target.className=='rm'){e.target.closest('tr').remove();chk()}});
+t.addEventListener('input',chk);
+t.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();const i=[...t.querySelectorAll('input')],k=i.indexOf(e.target);if(k===i.length-1)add();else i[k+1].focus()}});
+chk();
+</script>
